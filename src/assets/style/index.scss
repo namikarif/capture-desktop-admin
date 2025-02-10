@@ -1,11 +1,14 @@
 $primary-color: #4caf50;
+$primary-color-disabled: #a5d6a7;
 $secondary-color: #f44336;
+$secondary-color-disabled: #ef9a9a;
 $button-border-radius: 5px;
 $button-padding: 10px 20px;
 $button-font-size: 16px;
 $font-family: "Arial", sans-serif;
 $background-color: #f4f4f4;
-$text-color: #333;
+$text-color: #fff;
+$text-color-disabled: #e0e0e0;
 
 * {
   margin: 0;
@@ -61,8 +64,7 @@ body {
     color: white;
     padding: 15px;
     border-radius: 10px;
-    display: flex
-  ;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
@@ -133,7 +135,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto; // Liste çok olursa kaydırılabilir olsun
+  overflow-y: auto;
 
   h2 {
     text-align: center;
@@ -152,7 +154,6 @@ body {
       flex-direction: column;
       row-gap: 10px;
       justify-content: center;
-      align-items: center;
       background-color: #ffffff;
       padding: 15px;
       border-radius: 6px;
@@ -160,6 +161,36 @@ body {
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: background-color 0.3s ease;
       cursor: pointer;
+
+      .device-info {
+        display: flex;
+        flex-direction: column;
+        row-gap: 10px;
+
+        .device-info-detail {
+          display: flex;
+          column-gap: 10px;
+          align-items: center;
+
+          label {
+            font-weight: 600;
+          }
+
+          .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+          }
+
+          .danger-bg {
+            background: $secondary-color;
+          }
+
+          .success-bg {
+            background: $primary-color;
+          }
+        }
+      }
 
       &:hover {
         background-color: #f1f1f1;
@@ -181,6 +212,11 @@ body {
           cursor: pointer;
           transition: background-color 0.3s ease;
 
+          &[disabled] {
+            background-color: $primary-color-disabled !important;
+            color: $text-color-disabled !important;
+          }
+
           &:hover {
             background-color: darken($primary-color, 10%);
           }
@@ -192,6 +228,11 @@ body {
 
         .stop {
           background-color: $secondary-color;
+
+          &[disabled] {
+            background-color: $secondary-color-disabled !important;
+            color: $text-color-disabled !important;
+          }
 
           &:hover {
             background-color: darken($secondary-color, 10%);
