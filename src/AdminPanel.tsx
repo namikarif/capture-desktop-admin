@@ -15,7 +15,7 @@ export default function AdminPanel() {
 
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
-  const [peerConnection] = useState(new RTCPeerConnection());
+  const [peerConnection, setPeerConnection] = useState(new RTCPeerConnection());
 
   useEffect(() => {
     (async () => {
@@ -69,7 +69,6 @@ export default function AdminPanel() {
 
   useEffect(() => {
     socket.on("change-state", (data: DeviceState) => {
-      console.log({ DeviceState: data });
       setDevices((prev) => {
         const updatedDevices = [...prev];
 
@@ -105,6 +104,7 @@ export default function AdminPanel() {
   const startWatching = () => {
     if (selectedDevice) {
       setStartingView(true);
+      setPeerConnection(new RTCPeerConnection());
       socket.emit(`start-stream`, selectedDevice.id);
     }
   };
