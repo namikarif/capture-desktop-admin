@@ -1,38 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { DeviceDto } from "./models/device.ts";
+import { DeviceState } from "./models/socket.dto.ts";
 
 export default function AdminPanel() {
   const socket = io("https://nestjs-socket.onrender.com");
-  const [computers, setComputers] = useState<string[]>([]);
+ // const socket = io("http://localhost:3001");
+  const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [powerEvent, setPowerEvent] = useState<string | null>(null);
-  const [selectedComputer, setSelectedComputer] = useState<string | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<DeviceDto | null>(null);
+  const [startingView, setStartingView] = useState<boolean>(false);
 
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
   const [peerConnection] = useState(new RTCPeerConnection());
 
   useEffect(() => {
-    socket.on("computers", (data: string[]) => {
-      setComputers(data);
-    });
+    (async () => {
+      const deviceData: DeviceDto[] = await fetch("http://localhost:3001/devices/list").then(
+        (response) => response.json(),
+      );
 
-    socket.on("update-computers", (data: string[]) => setComputers(data));
+      setDevices(deviceData);
 
-    socket.on("computer-state", (data: Record<string, boolean | undefined>) => {
-      if (!!data.lockScreen || !!data.shutdown) {
-        setPowerEvent(
-          !!data.shutdown ? "The computer is shutting down..." : "The computer is locked.",
-        );
-      } else {
-        setPowerEvent(null);
-      }
-    });
+      socket.on("computers", (data: DeviceDto[]) => {
+        setDevices(data);
+      });
 
-    socket.on("video-stopped", () => {
-      // if (videoRef.current) {
-      //   videoRef.current.srcObject = null;
-      // }
-    });
+      socket.on("update-computers", (data: DeviceDto[]) => setDevices(data));
+    })();
 
     return () => {
       socket.disconnect();
@@ -69,18 +65,55 @@ export default function AdminPanel() {
     };
   }, [peerConnection]);
 
+  useEffect(() => {
+    socket.on("change-state", (data: DeviceState) => {
+      console.log({ DeviceState: data });
+      setDevices((prev) => {
+        const updatedDevices = [...prev]; // Yeni bir kopya oluştur
+
+        const deviceIndex = updatedDevices.findIndex((dv) => dv.id === data.id);
+
+        if (deviceIndex !== -1) {
+          updatedDevices[deviceIndex] = {
+            ...updatedDevices[deviceIndex],
+            status: data.status,
+            isEnable: data.isEnable,
+            isLock: data.isLock,
+          };
+        }
+
+        if ((data.isLock || !data.status) && selectedDevice?.id === data.id) {
+          setPowerEvent(
+            data.status ? "The computer is shutting down..." : "The computer is locked.",
+          );
+        } else {
+          setPowerEvent(null);
+        }
+
+        console.log({ updatedDevices });
+        return updatedDevices;
+      });
+    });
+
+    return () => {
+      socket.off("change-state");
+    };
+  }, [devices]);
+
   const startWatching = () => {
-    if (selectedComputer) {
-      socket.emit("start-stream", selectedComputer);
+    if (selectedDevice) {
+      setStartingView(true);
+      socket.emit(`start-stream`, selectedDevice.id);
     }
   };
 
   const stopWatching = () => {
-    if (selectedComputer) {
+    if (selectedDevice) {
       screenVideoRef.current!.srcObject = null;
       cameraVideoRef.current!.srcObject = null;
       setPowerEvent(null);
-      socket.emit("stop-stream", selectedComputer);
+      setStartingView(false);
+      socket.emit(`stop-stream`, selectedDevice.id);
     }
   };
 
@@ -89,17 +122,58 @@ export default function AdminPanel() {
       <div className="device-list">
         <h2>List of devices</h2>
         <ul>
-          {computers.map((computerId) => (
+          {devices.map((device) => (
             <li
-              key={computerId}
-              onClick={() => !screenVideoRef?.current?.srcObject && setSelectedComputer(computerId)}
+              key={device.id}
+              onClick={() => !screenVideoRef?.current?.srcObject && setSelectedDevice(device)}
             >
-              <span>{computerId}</span>
+              <div className="device-info">
+                <div className="device-info-detail">
+                  <label>ID:</label>
+                  <span>{device.id}</span>
+                </div>
+                <div className="device-info-detail">
+                  <label>Device Name:</label>
+                  <span>{device.name}</span>
+                </div>
+                <div className="device-info-detail">
+                  <label>Status:</label>
+                  <span
+                    title={
+                      device.status
+                        ? "The computer is ready for monitoring"
+                        : "The computer is shut down"
+                    }
+                    className={`dot ${device.status ? "success" : "danger"}-bg`}
+                  ></span>
 
-              {selectedComputer && selectedComputer === computerId && (
+                  <label>Is Enable:</label>
+                  <span
+                    title={
+                      !device.isEnable && device.status
+                        ? "Being monitored by someone else"
+                        : "The computer is ready for monitoring"
+                    }
+                    className={`dot ${device.isEnable && device.status ? "success" : "danger"}-bg`}
+                  ></span>
+
+                  <label>Is Lock:</label>
+                  <span
+                    title={
+                      device.isLock
+                        ? "The computer is locked"
+                        : "The computer is ready for monitoring"
+                    }
+                    className={`dot ${device.isLock ? "danger" : "success"}-bg`}
+                  ></span>
+                </div>
+              </div>
+              {selectedDevice && selectedDevice.id === device.id && (
                 <div className="controls">
-                  <button onClick={startWatching}>Start Watching</button>
-                  <button className="stop" onClick={stopWatching}>
+                  <button onClick={startWatching} disabled={!device.status || !device.isEnable}>
+                    Start Watching
+                  </button>
+                  <button className="stop" disabled={!startingView} onClick={stopWatching}>
                     Stop Watching
                   </button>
                 </div>
@@ -112,12 +186,7 @@ export default function AdminPanel() {
       <div className="video-player">
         {powerEvent && <PowerNotification message={powerEvent} />}
 
-        <video
-          ref={screenVideoRef}
-          autoPlay
-          playsInline
-          className={powerEvent ? "blurred" : ""}
-        />
+        <video ref={screenVideoRef} autoPlay playsInline className={powerEvent ? "blurred" : ""} />
 
         <video ref={cameraVideoRef} autoPlay playsInline className="camera-feed" />
       </div>
