@@ -111,8 +111,15 @@ export default function AdminPanel() {
 
   const stopWatching = () => {
     if (selectedDevice) {
-      screenVideoRef.current!.srcObject = null;
-      cameraVideoRef.current!.srcObject = null;
+      if (screenVideoRef.current?.srcObject instanceof MediaStream) {
+        screenVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        screenVideoRef.current.srcObject = null;
+      }
+
+      if (cameraVideoRef.current?.srcObject instanceof MediaStream) {
+        cameraVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        cameraVideoRef.current.srcObject = null;
+      }
       setPowerEvent(null);
       setStartingView(false);
       socket.emit(`stop-stream`, selectedDevice.id);
