@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { DeviceDto } from "./models/device.ts";
-import { DeviceState } from "./models/socket.dto.ts";
+import { DeviceDto } from "./models/device";
+import { DeviceState } from "./models/socket.dto";
+
+const apiUrl = "https://nestjs-socket.onrender.com";
+// const apiUrl = "http://localhost:3001";
 
 export default function AdminPanel() {
-  const socket = io("https://nestjs-socket.onrender.com");
-  // const socket = io("http://localhost:3001");
+  const socket = io(apiUrl);
   const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [powerEvent, setPowerEvent] = useState<string | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceDto | null>(null);
@@ -17,7 +19,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     (async () => {
-      const deviceData: DeviceDto[] = await fetch("http://localhost:3001/devices/list").then(
+      const deviceData: DeviceDto[] = await fetch(`${apiUrl}/devices/list`).then(
         (response) => response.json(),
       );
 
@@ -170,7 +172,7 @@ export default function AdminPanel() {
               </div>
               {selectedDevice && selectedDevice.id === device.id && (
                 <div className="controls">
-                  <button onClick={startWatching} disabled={!device.status || !device.isEnable}>
+                  <button onClick={startWatching} disabled={!device.status || !device.isEnable || startingView}>
                     Start Watching
                   </button>
                   <button className="stop" disabled={!startingView} onClick={stopWatching}>
