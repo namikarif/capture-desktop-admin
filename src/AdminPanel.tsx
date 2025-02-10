@@ -5,7 +5,7 @@ import { DeviceState } from "./models/socket.dto.ts";
 
 export default function AdminPanel() {
   const socket = io("https://nestjs-socket.onrender.com");
- // const socket = io("http://localhost:3001");
+  // const socket = io("http://localhost:3001");
   const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [powerEvent, setPowerEvent] = useState<string | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceDto | null>(null);
@@ -69,7 +69,7 @@ export default function AdminPanel() {
     socket.on("change-state", (data: DeviceState) => {
       console.log({ DeviceState: data });
       setDevices((prev) => {
-        const updatedDevices = [...prev]; // Yeni bir kopya oluştur
+        const updatedDevices = [...prev];
 
         const deviceIndex = updatedDevices.findIndex((dv) => dv.id === data.id);
 
@@ -154,7 +154,7 @@ export default function AdminPanel() {
                         ? "Being monitored by someone else"
                         : "The computer is ready for monitoring"
                     }
-                    className={`dot ${device.isEnable && device.status ? "success" : "danger"}-bg`}
+                    className={`dot ${(device.isEnable && device.status) ? "success" : "danger"}-bg`}
                   ></span>
 
                   <label>Is Lock:</label>
