@@ -72,20 +72,20 @@ export default function AdminPanel() {
       setDevices((prev) => {
         const updatedDevices = [...prev];
 
-        const deviceIndex = updatedDevices.findIndex((dv) => dv.id === data.id);
+        const deviceIndex = updatedDevices.findIndex((dv) => dv.deviceId === data.id);
 
         if (deviceIndex !== -1) {
           updatedDevices[deviceIndex] = {
             ...updatedDevices[deviceIndex],
-            status: data.status,
+            shutdown: data.shutdown,
             isEnable: data.isEnable,
             isLock: data.isLock,
           };
         }
 
-        if ((data.isLock || !data.status) && selectedDevice?.id === data.id) {
+        if ((data.isLock || !data.shutdown) && selectedDevice?.deviceId === data.id) {
           setPowerEvent(
-            data.status ? "The computer is shutting down..." : "The computer is locked.",
+            data.shutdown ? "The computer is shutting down..." : "The computer is locked.",
           );
         } else {
           setPowerEvent(null);
@@ -105,7 +105,7 @@ export default function AdminPanel() {
     if (selectedDevice) {
       setStartingView(true);
       setPeerConnection(new RTCPeerConnection());
-      socket.emit(`start-stream`, selectedDevice.id);
+      socket.emit(`start-stream`, selectedDevice.deviceId);
     }
   };
 
@@ -122,7 +122,7 @@ export default function AdminPanel() {
       }
       setPowerEvent(null);
       setStartingView(false);
-      socket.emit(`stop-stream`, selectedDevice.id);
+      socket.emit(`stop-stream`, selectedDevice.deviceId);
     }
   };
 
@@ -133,13 +133,13 @@ export default function AdminPanel() {
         <ul>
           {devices.map((device) => (
             <li
-              key={device.id}
+              key={device.deviceId}
               onClick={() => !screenVideoRef?.current?.srcObject && setSelectedDevice(device)}
             >
               <div className="device-info">
                 <div className="device-info-detail">
                   <label>ID:</label>
-                  <span>{device.id}</span>
+                  <span>{device.deviceId}</span>
                 </div>
                 <div className="device-info-detail">
                   <label>Device Name:</label>
@@ -149,21 +149,21 @@ export default function AdminPanel() {
                   <label>Status:</label>
                   <span
                     title={
-                      device.status
+                      !device.shutdown
                         ? "The computer is ready for monitoring"
                         : "The computer is shut down"
                     }
-                    className={`dot ${device.status ? "success" : "danger"}-bg`}
+                    className={`dot ${!device.shutdown ? "success" : "danger"}-bg`}
                   ></span>
 
                   <label>Is Enable:</label>
                   <span
                     title={
-                      !device.isEnable && device.status
+                      !device.isEnable && !device.shutdown
                         ? "Being monitored by someone else"
                         : "The computer is ready for monitoring"
                     }
-                    className={`dot ${(device.isEnable && device.status) ? "success" : "danger"}-bg`}
+                    className={`dot ${(device.isEnable && !device.shutdown) ? "success" : "danger"}-bg`}
                   ></span>
 
                   <label>Is Lock:</label>
@@ -177,9 +177,9 @@ export default function AdminPanel() {
                   ></span>
                 </div>
               </div>
-              {selectedDevice && selectedDevice.id === device.id && (
+              {selectedDevice && selectedDevice.deviceId === device.deviceId && (
                 <div className="controls">
-                  <button onClick={startWatching} disabled={!device.status || !device.isEnable || startingView}>
+                  <button onClick={startWatching} disabled={device.shutdown || !device.isEnable || startingView}>
                     Start Watching
                   </button>
                   <button className="stop" disabled={!startingView} onClick={stopWatching}>
